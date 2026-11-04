@@ -59,3 +59,16 @@ test("las puntuaciones de otra cuenta siguen siendo privadas", async () => {
   await assertFails(get(ref(db(alice), `dailyScores/${bob}/2026-11-04`)));
   await assertSucceeds(get(ref(db(bob), `dailyScores/${bob}/2026-11-04`)));
 });
+
+test("no se puede crear una solicitud con identidad falsificada", async () => {
+  const fake = { senderUid: stranger, recipientUid: bob, status: "pending", createdAt: Date.now() };
+  await assertFails(set(ref(db(alice), `friendRequests/${bob}/${stranger}`), fake));
+  await assertFails(set(ref(db(alice), `friendRequests/${bob}/${alice}`), { ...fake, senderUid: alice }));
+});
+test("no se permite alterar la fecha de una solicitud existente", async () => {
+  await assertFails(update(ref(db(bob), path), { createdAt: Date.now() }));
+});
+test("nadie puede añadir campos arbitrarios a una solicitud", async () => {
+  const extraPath = `friendRequests/${stranger}/${alice}`;
+  await assertFails(set(ref(db(alice), extraPath), { senderUid: alice, recipientUid: stranger, status: "pending", createdAt: Date.now(), admin: true }));
+});
