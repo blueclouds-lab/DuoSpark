@@ -8,10 +8,18 @@
         "$date": {
           ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()",
           ".validate": "newData.hasChildren(['score', 'gameId', 'completedAt'])",
-          "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
-          "gameId": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
-          "completedAt": { ".validate": "newData.isNumber() && newData.val() > 0" },
-          "$other": { ".validate": false }
+          "score": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+          },
+          "gameId": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+          },
+          "completedAt": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     },
@@ -32,13 +40,24 @@
       "$recipientUid": {
         ".read": "auth != null && auth.uid === $recipientUid",
         "$senderUid": {
-          ".write": "auth != null && auth.uid === $senderUid && $senderUid !== $recipientUid && !data.exists() && newData.exists() && newData.child('status').val() === 'pending' && newData.child('senderUid').val() === $senderUid && newData.child('recipientUid').val() === $recipientUid",
+          ".read": "auth != null && (auth.uid === $recipientUid || auth.uid === $senderUid)",
+          ".write": "auth != null && $senderUid !== $recipientUid && ((auth.uid === $senderUid && !data.exists() && newData.exists() && newData.child('status').val() === 'pending' && newData.child('senderUid').val() === $senderUid && newData.child('recipientUid').val() === $recipientUid) || (auth.uid === $recipientUid && data.exists() && data.child('status').val() === 'pending' && newData.exists() && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'rejected') && newData.child('senderUid').val() === data.child('senderUid').val() && newData.child('recipientUid').val() === data.child('recipientUid').val() && newData.child('createdAt').val() === data.child('createdAt').val()))",
           ".validate": "newData.hasChildren(['senderUid', 'recipientUid', 'status', 'createdAt'])",
-          "senderUid": { ".validate": "newData.isString() && newData.val() === $senderUid" },
-          "recipientUid": { ".validate": "newData.isString() && newData.val() === $recipientUid" },
-          "status": { ".validate": "newData.isString() && newData.val() === 'pending'" },
-          "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now && newData.val() > now - 300000" },
-          "$other": { ".validate": false }
+          "senderUid": {
+            ".validate": "newData.isString() && newData.val() === $senderUid"
+          },
+          "recipientUid": {
+            ".validate": "newData.isString() && newData.val() === $recipientUid"
+          },
+          "status": {
+            ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'accepted' || newData.val() === 'rejected')"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now && (data.exists() || newData.val() > now - 300000)"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     }
