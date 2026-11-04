@@ -1,0 +1,46 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "dailyScores": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$date": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['score', 'gameId', 'completedAt'])",
+          "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
+          "gameId": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
+          "completedAt": { ".validate": "newData.isNumber() && newData.val() > 0" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "friendCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && newData.val() === auth.uid && $code.matches(/^DS-[A-Z0-9]{12}$/)",
+        ".validate": "newData.isString()"
+      }
+    },
+    "myFriendCode": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.isString() && newData.val().matches(/^DS-[A-Z0-9]{12}$/) && root.child('friendCodes').child(newData.val()).val() === auth.uid"
+      }
+    },
+    "friendRequests": {
+      "$recipientUid": {
+        ".read": "auth != null && auth.uid === $recipientUid",
+        "$senderUid": {
+          ".write": "auth != null && auth.uid === $senderUid && $senderUid !== $recipientUid && !data.exists() && newData.exists() && newData.child('status').val() === 'pending' && newData.child('senderUid').val() === $senderUid && newData.child('recipientUid').val() === $recipientUid",
+          ".validate": "newData.hasChildren(['senderUid', 'recipientUid', 'status', 'createdAt'])",
+          "senderUid": { ".validate": "newData.isString() && newData.val() === $senderUid" },
+          "recipientUid": { ".validate": "newData.isString() && newData.val() === $recipientUid" },
+          "status": { ".validate": "newData.isString() && newData.val() === 'pending'" },
+          "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now && newData.val() > now - 300000" },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}
