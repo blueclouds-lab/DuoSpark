@@ -1,14 +1,20 @@
-# DuoSpark · Propuesta de reglas de amistad (NO PUBLICAR TODAVÍA)
+# DuoSpark · Revisión de solicitudes de amistad (NO PUBLICAR)
 
-Estado: **borrador incompleto, para revisión**. Este archivo no se aplica a Firebase automáticamente.
+**Estado:** borrador de reglas, guardado únicamente en GitHub. No se ha desplegado en Firebase.
 
-- Mantiene las reglas existentes de puntuaciones y códigos.
-- Añade únicamente solicitudes pendientes en `friendRequests/$recipientUid/$senderUid`.
-- La persona destinataria puede leer sus solicitudes; quien las envía no puede consultar directamente ese nodo.
-- **Falta implementar** la aceptación/rechazo por destinatario, el vínculo persistente entre ambos, cancelaciones, bloqueo de spam, protección frente a enumeración de códigos, presencia y reglas de puntuaciones compartidas.
-- **Problema pendiente**: las reglas actuales permiten a cualquier cuenta autenticada consultar códigos concretos. Un código no debe actuar como autorización para datos privados.
-- **Problema pendiente**: la validación de `dailyScores` no verifica la puntuación contra el resultado real del minijuego. No prometer competición antitrampas sin backend confiable.
-- Para producción, conviene modelar el vínculo y las solicitudes de forma que el receptor pueda aceptar sin que un emisor falsifique la aceptación. Se debe probar en Firebase Emulator antes de publicar.
-- **No pegar este JSON en la consola como reglas definitivas**. Todavía no habilita el flujo completo de amistad.
+## Flujo previsto
+1. Emisor autenticado crea `friendRequests/<destinatarioUid>/<emisorUid>` con `status: pending`.
+2. El destinatario autenticado lee su bandeja y puede cambiar `status` a `accepted` o `rejected`.
+3. El emisor puede consultar su solicitud individual si conoce el UID del destinatario.
+4. No se permite que el emisor acepte en nombre del destinatario, ni que se reabra una solicitud ya resuelta.
 
-La pantalla de prueba actual permanece independiente de estas reglas.
+## Antes de publicar
+- **Pruebas obligatorias en Firebase Emulator:** creación válida, lectura por receptor, lectura directa por emisor, rechazo de terceros, rechazo de aceptación por emisor, bloqueo de cambios de UID/fecha, bloqueo de sobrescritura, y verificación de reglas existentes.
+- **No hay todavía lista persistente de amigos para ambas cuentas:** el estado `accepted` en la solicitud no sustituye un índice bilateral seguro. No activar aún el botón «Amigos conectados» en producción.
+- **No hay cancelación, bloqueo ni límite antispam**; un usuario puede intentar solicitudes a UIDs conocidos. Definir controles antes de despliegue.
+- **Los códigos de amistad se pueden consultar por cuentas autenticadas** si conocen el código. La búsqueda por código debe ser un mecanismo de descubrimiento, nunca autorización.
+- **Los puntos no están verificados por servidor**, y los retos online y la presencia no están implementados.
+- El indicador de presencia deberá ser discreto, consentido y actualizado mediante `onDisconnect`, evitando publicar una localización o historial.
+- La seguridad de invitaciones exige validar que el UID destinatario corresponde al código buscado, sin permitir suplantación ni acceso a datos ajenos.
+
+**No copiar estas reglas a Firebase todavía.** Son un diseño en revisión y requieren pruebas reales antes de habilitar solicitudes entre iPhones.
