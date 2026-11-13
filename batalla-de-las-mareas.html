@@ -42,6 +42,10 @@ body{background:radial-gradient(ellipse at top,#12566d,#061425 65%);background-a
 .special-sea .cell .hull .light{background:#d6ffff;box-shadow:0 0 9px #00faff;opacity:1}
 .cell.hit:after{z-index:5}
 .cell.hit .hull{filter:brightness(.7) sepia(.5)}
+
+/* DuoSpark iPhone: prevent text selection and long-press callouts on game controls */
+button,[role="button"],.controls,.control,[data-dir],canvas{ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none; }
+button,[role="button"],.control,[data-dir]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 </style><style>
 /* Efectos de combate: visibles incluso tras actualizar el tablero */
 .cell{isolation:isolate}
