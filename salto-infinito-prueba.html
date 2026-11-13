@@ -2,6 +2,10 @@
 /* DuoSpark iPhone: prevent text selection and long-press callouts on game controls */
 button,[role="button"],.controls,.control,[data-dir],canvas{ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none; }
 button,[role="button"],.control,[data-dir]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+
+/* iPhone continuous movement: gestures must not interrupt held controls */
+.controls button#left,.controls button#right{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:contain}
+.controls{touch-action:pan-y}
 </style></head><body><main><span class="tag">🎮 DUOSPARK · DESTREZA Y PLATAFORMAS</span><h1>🚀 Salto Infinito</h1><p>¡Salta entre plataformas flotantes y llega tan alto como puedas! Algunas se mueven, otras desaparecen y las doradas te impulsan más alto. Cada partida es diferente.</p><section class="panel"><div class="hud"><div class="stat"><strong id="height">0</strong><span>Altura</span></div><div class="stat"><strong id="time">0</strong><span>Segundos</span></div><div class="stat"><strong id="best">0</strong><span>Récord local</span></div></div><canvas id="game" width="360" height="540" aria-label="Juego de plataformas espaciales"></canvas><div class="controls"><button id="left">◀ Izquierda</button><button id="right">Derecha ▶</button></div><button id="start" style="width:100%">🚀 Empezar partida</button><div id="status" class="status" role="status">Salta automáticamente al aterrizar. Muévete para alcanzar las plataformas.</div><p class="small">Mac: flechas ← → o teclas A y D. iPhone: mantén pulsados los botones o arrastra el dedo por la pantalla. La nave salta sola al aterrizar. Si caes fuera de la pantalla, termina la partida.</p><p class="small">🟦 Plataforma normal · 🟣 Plataforma móvil · 🩷 Plataforma frágil · 🟨 Superimpulso</p></section><p class="small">Versión de prueba individual, sin Firebase ni juego en línea. <a href="./index.html">Volver al arcade</a></p></main><script>
 "use strict";
 const $=id=>document.getElementById(id),c=$("game"),ctx=c.getContext("2d"),W=360,H=540,rand=(a,b)=>a+Math.random()*(b-a);
@@ -23,4 +27,8 @@ document.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","a","A","d"
 document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.l=false;if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.r=false});window.addEventListener("blur",()=>keys.l=keys.r=false);
 function move(e){const rect=c.getBoundingClientRect();player.x=Math.max(player.r,Math.min(W-player.r,(e.clientX-rect.left)*W/rect.width))}
 c.addEventListener("pointerdown",e=>{if(!running)return;drag=true;c.setPointerCapture(e.pointerId);move(e)});c.addEventListener("pointermove",e=>{if(drag&&running)move(e)});for(const ev of ["pointerup","pointercancel","lostpointercapture"])c.addEventListener(ev,()=>drag=false);draw();
+
+// Avoid Safari long-press menus on movement buttons without blocking other page actions.
+for(const id of ["left","right"]){const b=$(id);b.addEventListener("contextmenu",e=>e.preventDefault());b.addEventListener("dragstart",e=>e.preventDefault())}
+document.addEventListener("visibilitychange",()=>{if(document.hidden){keys.l=keys.r=false}});
 </script></body></html>
