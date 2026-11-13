@@ -2,6 +2,10 @@
 /* DuoSpark iPhone: prevent text selection and long-press callouts on game controls */
 button,[role="button"],.controls,.control,[data-dir],canvas{ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none; }
 button,[role="button"],.control,[data-dir]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+
+/* iPhone directional pad: prevent long-press selection and accidental page gestures */
+.controls{touch-action:none;overscroll-behavior:contain}
+.controls button{touch-action:none;min-width:60px;min-height:56px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 </style></head><body><main><span class="tag">🎮 DUOSPARK · ESTRATEGIA</span><h1>🧭 El Laberinto de las Decisiones</h1><p>Recoge los tres cristales y alcanza el portal. Cada paso consume energía: decide si te conviene explorar, arriesgarte o buscar una recarga.</p><section class="panel"><div class="stats"><div class="stat"><strong id="energy">28</strong><span>⚡ Energía</span></div><div class="stat"><strong id="gems">0/3</strong><span>💎 Cristales</span></div><div class="stat"><strong id="steps">0</strong><span>👣 Pasos</span></div></div><div class="board" id="board" aria-label="Laberinto de siete por siete casillas"></div><div class="controls"><span></span><button id="up" aria-label="Arriba">▲</button><span></span><button id="left" aria-label="Izquierda">◀</button><button id="down" aria-label="Abajo">▼</button><button id="right" aria-label="Derecha">▶</button></div><div class="message" id="message" role="status" aria-live="polite">Busca los tres cristales. ¡El portal está cerrado!</div><button id="restart" style="width:100%;margin-top:12px">🔄 Nuevo laberinto</button><p class="legend">🧑‍🚀 Tú · 💎 Cristal · ⚡ Recarga (+9) · 🔥 Trampa (−5) · 🚪 Portal · ⬛ Muro</p><p class="small">Puedes moverte con las flechas del teclado, WASD o los botones. El mapa cambia al iniciar una partida. Las casillas especiales se descubren al acercarte.</p></section><p class="small">Versión individual de prueba, sin Firebase ni datos compartidos. <a href="./index.html">Volver al arcade</a></p></main><script>
 "use strict";
 const $=id=>document.getElementById(id),N=7,dirs=[[0,-1],[0,1],[-1,0],[1,0]],rand=n=>Math.floor(Math.random()*n);
@@ -21,4 +25,7 @@ function restart(){player={x:0,y:0};energy=28;gems=0;steps=0;over=false;seen=new
 $("up").onclick=()=>move(0,-1);$("down").onclick=()=>move(0,1);$("left").onclick=()=>move(-1,0);$("right").onclick=()=>move(1,0);
 document.addEventListener("keydown",e=>{const m={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]}[e.key];if(m){e.preventDefault();move(...m)}});
 $("restart").onclick=restart;restart();
+
+// Prevent iOS long-press menu and drag on directional controls.
+document.querySelectorAll('.controls button').forEach(b=>{b.addEventListener('contextmenu',e=>e.preventDefault());b.addEventListener('dragstart',e=>e.preventDefault())});
 </script></body></html>
