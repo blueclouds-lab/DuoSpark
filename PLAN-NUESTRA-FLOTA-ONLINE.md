@@ -32,3 +32,10 @@ Con Firebase Realtime Database y solo código cliente, un atacante que controle 
 6. Revancha y avisos discretos **dentro de la web**; notificaciones push del iPhone son una fase distinta.
 
 **No pegar ni publicar este documento como reglas JSON de Firebase.**
+
+## Revisión de reglas recibidas (16 noviembre 2026)
+Las reglas aportadas por la usuaria contienen `dailyScores`, `friendCodes`, `myFriendCode`, `friendRequests` y `fleetInvites`, con `.read` y `.write` raíz en false. No incluyen todavía rutas `fleetMatches`, `fleetPrivateBoards`, `fleetShots` ni `fleetMatchMembers`.
+
+Decisión de seguridad: no publicar reglas amplias para nuevas rutas ni guardar posiciones secretas bajo un nodo legible por ambos. Las reglas actuales de `fleetInvites` permiten aceptación/rechazo; **no** crean partidas automáticamente. Hay que diseñar transición atómica de turno, validar acciones y modelar la resolución de disparos sin exponer tableros. Un árbitro de confianza puede ser necesario para prevenir falsificación de resultados; Firebase RTDB solo cliente no proporciona una autoridad fiable para verificar impactos contra tableros que no puede leer el rival.
+
+Siguiente acción: construir interfaz de preparación local sin escritura remota, y después proponer reglas revisables completas con pruebas negativas.
