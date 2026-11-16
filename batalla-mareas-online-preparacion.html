@@ -107,7 +107,7 @@ button,[role="button"],.control,[data-dir]{touch-action:manipulation;-webkit-tap
 @keyframes confettiFall{from{transform:translateY(-15vh) rotate(0)}to{transform:translateY(115vh) rotate(540deg)}}
 @media(prefers-reduced-motion:reduce){.board,.cell:not(.hit):not(.miss):not(.sea-wreck),.arcade-shot,.arcade-celebration,.arcade-confetti{animation:none}}
 </style></head><body><div id="battleArcadeLayer" aria-hidden="true"></div><main class="wrap"><header><span class="pill">DUOSPARK · PROTOTIPO PRIVADO</span><h1>⚓ Batalla de las Mareas</h1><div class="sub">Cinco buques diferentes. Un océano. Una batalla de estrategia.</div></header>
-<section class="panel" style="border-color:#80eadd"><h2>💙 Nuestra Flota · Preparación para jugar en línea</h2><p class="note">Esta copia conserva el tablero y los efectos originales. Por ahora los disparos rivales siguen siendo del ordenador: todavía no hay turnos compartidos ni barcos enviados a Firebase. Estamos preparando la versión para dos iPhones sin tocar el juego original.</p><p><a href="./nuestra-flota.html" style="color:#a9fff2">← Volver a las invitaciones privadas</a></p></section><section class="panel" id="setup"><h2>Prepara tu batalla</h2><div class="controls"><button id="classic" class="selected">⚓ Clásico</button><button id="special" class="secondary">✨ Especial</button><button id="horizontal" class="selected">↔ Horizontal</button><button id="vertical" class="secondary">↕ Vertical</button></div><p id="placeInfo" class="status"></p><p class="note">Toca una casilla para colocar el barco indicado. Puedes colocarlos automáticamente o deshacer.</p><div class="controls"><button id="auto">🎲 Colocar al azar</button><button id="undo" class="secondary">↶ Deshacer</button><button id="reset" class="secondary">Reiniciar flota</button><button id="start" disabled>Comenzar batalla →</button></div></section>
+<section class="panel" style="border-color:#80eadd"><h2>💙 Nuestra Flota · Preparación para jugar en línea</h2><p class="note">Esta copia conserva el tablero y los efectos originales. Por ahora los disparos rivales siguen siendo del ordenador: todavía no hay turnos compartidos ni barcos enviados a Firebase. Estamos preparando la versión para dos iPhones sin tocar el juego original.</p><p><a href="./nuestra-flota.html" style="color:#a9fff2">← Volver a las invitaciones privadas</a></p></section><section class="panel" id="setup"><h2>Prepara tu batalla</h2><div class="controls"><button id="classic" class="selected">⚓ Clásico</button><button id="special" class="secondary">✨ Especial</button><button id="horizontal" class="selected">↔ Horizontal</button><button id="vertical" class="secondary">↕ Vertical</button></div><p id="placeInfo" class="status"></p><p class="note">Toca una casilla para colocar el barco indicado. Puedes colocarlos automáticamente o deshacer.</p><p class="note" style="color:#a9fff2">💾 La colocación de tus barcos se guarda en este navegador mientras preparas la flota. Todavía no se sincroniza entre iPhones ni se guarda una batalla contra el ordenador.</p><div class="controls"><button id="auto">🎲 Colocar al azar</button><button id="undo" class="secondary">↶ Deshacer</button><button id="reset" class="secondary">Reiniciar flota</button><button id="start" disabled>Comenzar batalla →</button></div></section>
 <section class="panel" id="gameInfo" hidden><div class="controls"><span class="pill" id="modeBadge"></span><span class="pill" id="turnBadge">Tu turno</span><button id="sonar" class="secondary hidden">📡 Sonar (1 uso)</button><button id="newGame" class="secondary">Nueva partida</button></div><p class="status" id="status" role="status"></p><p class="note" id="sonarHelp"></p></section>
 <section class="panel"><div class="boards"><div><div class="boardtitle"><h2>Tu flota</h2><span class="stat" id="ownStat"></span></div><div class="board" id="own" aria-label="Tablero de tu flota"></div></div><div id="enemyBox" class="hidden"><div class="boardtitle"><h2>Océano rival</h2><span class="stat" id="enemyStat"></span></div><div class="board" id="enemy" aria-label="Tablero enemigo"></div></div></div></section>
 <section class="panel hidden" id="history"><h2>Diario de batalla</h2><div class="log" id="log"></div></section>
@@ -139,5 +139,30 @@ function end(win){phase="end";busy=false;$("turnBadge").textContent="Partida ter
 function setMode(m){mode=m;$("classic").className=m==="classic"?"selected":"secondary";$("special").className=m==="special"?"selected":"secondary";render()}
 function setDir(d){dir=d;$("horizontal").className=d==="h"?"selected":"secondary";$("vertical").className=d==="v"?"selected":"secondary"}
 function reset(){document.getElementById("arcadeWin")?.remove();sinkingFinished={own:new Set(),enemy:new Set()};cinematicSink=null;phase="setup";busy=false;ownShips=[];enemyShips=[];ownShots=new Set();enemyShots=new Set();sonarMarks=new Set();sonarUsed=false;sonarPending=false;$("setup").classList.remove("hidden");$("gameInfo").hidden=true;$("enemyBox").classList.add("hidden");$("history").classList.add("hidden");render()}
+
+// Preparación local persistente: no se envían posiciones ni disparos a Firebase.
+// Solo se restaura una flota en fase de colocación; la partida contra CPU sigue siendo una prueba.
+const FLEET_DRAFT_KEY="duospark-fleet-local-draft-v1";
+function saveFleetDraft(){
+ try{if(phase!=="setup")return;localStorage.setItem(FLEET_DRAFT_KEY,JSON.stringify({version:1,ships:ownShips.map(s=>({name:s.name,cells:[...s.cells]})),mode,dir}))}
+ catch(e){console.warn("No se pudo guardar la preparación local",e)}
+}
+function restoreFleetDraft(){
+ try{
+  const raw=localStorage.getItem(FLEET_DRAFT_KEY);if(!raw)return false;
+  const d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.ships)||d.ships.length>5)return false;
+  const rebuilt=[];for(const s of d.ships){
+   const n=rebuilt.length;if(s.name!==names[n]||!Array.isArray(s.cells)||s.cells.length!==lengths[n])return false;
+   const first=s.cells[0];if(!Number.isInteger(first)||first<0||first>=100)return false;
+   const valid=["h","v"].some(direction=>{const expected=cellsFor(first,lengths[n],direction);return expected&&expected.every((v,i)=>v===s.cells[i])});
+   if(!valid||s.cells.some(i=>rebuilt.some(prev=>prev.cells.includes(i))))return false;
+   rebuilt.push({name:s.name,cells:[...s.cells]});
+  }
+  ownShips=rebuilt;mode=d.mode==="special"?"special":"classic";dir=d.dir==="v"?"v":"h";setMode(mode);setDir(dir);render();return true;
+ }catch(e){console.warn("No se pudo restaurar la flota",e);return false}
+}
+const previousRender=render;
+render=function(){previousRender();saveFleetDraft()};
+restoreFleetDraft();
 $("classic").onclick=()=>setMode("classic");$("special").onclick=()=>setMode("special");$("horizontal").onclick=()=>setDir("h");$("vertical").onclick=()=>setDir("v");$("auto").onclick=()=>{ownShips=randomFleet();render()};$("undo").onclick=()=>{ownShips.pop();render()};$("reset").onclick=()=>{ownShips=[];render()};$("start").onclick=start;$("newGame").onclick=reset;$("sonar").onclick=()=>{if(mode!=="special"||sonarUsed||busy||phase!=="battle")return;sonarPending=!sonarPending;$("status").textContent=sonarPending?"Selecciona una casilla para centrar el sonar 3 × 3.":"Sonar cancelado.";render()};render();
 </script></body></html>
