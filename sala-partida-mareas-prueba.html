@@ -1,0 +1,36 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#061b32"><title>Sala de partida · DuoSpark</title><style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#15556b,#061425 68%);color:#e7fcff;font:16px system-ui,-apple-system,sans-serif;min-height:100vh}main{max-width:740px;margin:auto;padding:22px 16px 60px}a{color:#a9fff2}h1{font-size:clamp(27px,6vw,38px);margin:10px 0}.sub{color:#b4dbe4;line-height:1.6}.card{border:1px solid #387c91;background:#09283edc;border-radius:18px;padding:18px;margin:16px 0;box-shadow:0 12px 30px #0004}.tag{display:inline-block;padding:6px 10px;border:1px solid #5bb4bd;border-radius:30px;color:#a8f9ef;font-size:12px;font-weight:700}.moon{display:inline-block;transform:scaleX(-1)}button,.btn{background:#86eee4;color:#073a44;border:0;border-radius:12px;padding:12px 15px;font:750 15px system-ui;text-decoration:none;cursor:pointer;display:inline-block}button.secondary,.btn.secondary{background:#16445a;color:#d8fbff;border:1px solid #5c9dad}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.status{padding:13px;background:#071e31;border-left:3px solid #8ff4e6;border-radius:9px;line-height:1.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.small{font-size:13px;color:#b4d6df}.big{font-size:22px;font-weight:800;margin:6px 0}ol{line-height:1.9;padding-left:22px}@media(max-width:480px){.grid{grid-template-columns:1fr}}</style></head><body><main>
+<a href="./nuestra-flota.html">← Volver a Nuestra Flota</a>
+<div style="text-align:center;font-size:45px;margin:10px"><span class="moon" aria-label="Luna menguante">🌙</span> 🚢 🌊</div>
+<span class="tag">DUOSPARK · MAQUETA SEGURA</span><h1>Sala de partida</h1>
+<p class="sub">Aquí prepararemos las partidas que podréis continuar otro día. Esta primera sala guarda solo un borrador de interfaz en <strong>este dispositivo</strong>; todavía no crea partidas reales ni envía disparos.</p>
+<section class="card"><h2>💙 Estado de vuestra conexión</h2><div id="connection" class="status" role="status">Comprobando tu cuenta…</div><div class="grid" style="margin-top:14px"><div><div class="small">Tu flota</div><div id="mine" class="big">Comprobando…</div></div><div><div class="small">La otra persona</div><div id="theirs" class="big">Comprobando…</div></div></div><div class="actions"><a class="btn secondary" href="./batalla-mareas-online-preparacion.html?v=6">🚢 Preparar mis barcos</a></div></section>
+<section class="card"><h2>🌊 Cómo será una partida</h2><div class="grid"><div class="status"><div class="small">Fase</div><div class="big">Preparación</div><div class="small">Ambos jugadores colocan sus barcos</div></div><div class="status"><div class="small">Próximo turno</div><div class="big">Por determinar</div><div class="small">Se asignará al iniciar la partida real</div></div></div><ol><li>Invitación privada aceptada</li><li>Cada flota se guarda por separado</li><li>Ambos confirman «Estoy listo»</li><li>Se habilitan disparos alternos</li><li>La partida se recupera al volver</li></ol></section>
+<section class="card"><h2>📝 Mi borrador de sala</h2><p class="small">Puedes guardar aquí tu preferencia de modalidad mientras preparamos las reglas. No se comparte con la otra persona.</p><div class="actions"><button id="classic" class="secondary">Clásica</button><button id="special" class="secondary">Especial</button></div><p id="draft" class="status" role="status"></p><div class="actions"><button id="clear" class="secondary">Borrar solo esta preferencia</button></div></section>
+<p class="small">🔐 Esta página solo consulta el estado de preparación permitido por las reglas actuales. No lee ni publica posiciones de barcos. El borrador de modalidad permanece en Safari.</p></main>
+<script type="module">
+import{initializeApp,getApps}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import{getAuth,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import{getDatabase,ref,get,onValue}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+const config={apiKey:"AIzaSyCmJJZxxcDpofwVUt29FrfCy4kM0g1Y3GM",authDomain:"duospark-1e725.firebaseapp.com",databaseURL:"https://duospark-1e725-default-rtdb.europe-west1.firebasedatabase.app",projectId:"duospark-1e725",appId:"1:316857821004:web:af1b3711865a5f816d91e9"};
+const db=getDatabase(getApps()[0]||initializeApp(config)),auth=getAuth(),$=id=>document.getElementById(id);
+let unsubs=[],seq=0;const key="duospark-mareas-room-draft-v1";
+function showDraft(){let v="classic";try{v=localStorage.getItem(key)||"classic"}catch(e){}$("draft").textContent="Modalidad elegida en este dispositivo: "+(v==="special"?"Especial":"Clásica");$("classic").style.outline=v==="classic"?"2px solid #8cf9f1":"";$("special").style.outline=v==="special"?"2px solid #8cf9f1":""}
+for(const mode of ["classic","special"])$(mode).onclick=()=>{try{localStorage.setItem(key,mode)}catch(e){}showDraft()};
+$("clear").onclick=()=>{try{localStorage.removeItem(key)}catch(e){}showDraft()};showDraft();
+onAuthStateChanged(auth,async user=>{
+ const n=++seq;unsubs.forEach(fn=>fn());unsubs=[];$("mine").textContent="Sin datos";$("theirs").textContent="Sin datos";
+ if(!user){$("connection").textContent="🔒 Inicia sesión desde Cuentas para consultar los estados.";return}
+ $("connection").textContent="Comprobando amistad aceptada…";
+ try{
+  const uid=user.uid,s=await get(ref(db,"friendRequests/"+uid));if(n!==seq)return;let friend=null;
+  s.forEach(x=>{if(x.val()?.status==="accepted")friend=x.key});
+  if(!friend){const target=localStorage.getItem("duospark-friend-target-"+uid);if(target){const x=await get(ref(db,"friendRequests/"+target+"/"+uid));if(n!==seq)return;if(x.val()?.status==="accepted")friend=target}}
+  if(!friend){$("connection").textContent="No se encontró una amistad aceptada en este dispositivo. Comprueba Cuentas.";return}
+  $("connection").textContent="💙 Amistad aceptada. Consultando los estados privados de preparación.";
+  for(const [id,who] of [["mine",uid],["theirs",friend]]){
+   unsubs.push(onValue(ref(db,"fleetReady/"+who),x=>{$(id).textContent=x.val()?.ready===true?"💙 Listo":"🚢 Preparando";},e=>{$(id).textContent="No disponible";$("connection").textContent="No se pudo consultar el estado ("+(e.code||"error")+")."}));
+  }
+ }catch(e){if(n===seq)$("connection").textContent="No se pudo comprobar la amistad ("+(e.code||"error")+")."}
+});
+</script></body></html>
