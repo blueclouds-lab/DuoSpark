@@ -1,0 +1,143 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "dailyScores": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('friendRequests').child($uid).child(auth.uid).child('status').val() === 'accepted' || root.child('friendRequests').child(auth.uid).child($uid).child('status').val() === 'accepted')",
+        "$date": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['score', 'gameId', 'completedAt'])",
+          "score": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+          },
+          "gameId": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+          },
+          "completedAt": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "friendCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && newData.val() === auth.uid && $code.matches(/^DS-[A-Z0-9]{12}$/)",
+        ".validate": "newData.isString()"
+      }
+    },
+    "myFriendCode": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.isString() && newData.val().matches(/^DS-[A-Z0-9]{12}$/) && root.child('friendCodes').child(newData.val()).val() === auth.uid"
+      }
+    },
+    "friendRequests": {
+      "$recipientUid": {
+        ".read": "auth != null && auth.uid === $recipientUid",
+        "$senderUid": {
+          ".read": "auth != null && (auth.uid === $senderUid || auth.uid === $recipientUid)",
+          ".write": "auth != null && ((!newData.exists() && data.exists() && (auth.uid === $senderUid || auth.uid === $recipientUid)) || (!data.exists() && newData.exists() && auth.uid === $senderUid && $senderUid !== $recipientUid && newData.child('senderUid').val() === $senderUid && newData.child('recipientUid').val() === $recipientUid && newData.child('status').val() === 'pending' && root.child('friendCodes').child(newData.child('code').val()).val() === $recipientUid) || (data.exists() && newData.exists() && auth.uid === $recipientUid && data.child('status').val() === 'pending' && newData.child('status').val() === 'accepted' && newData.child('senderUid').val() === data.child('senderUid').val() && newData.child('recipientUid').val() === data.child('recipientUid').val() && newData.child('code').val() === data.child('code').val() && newData.child('createdAt').val() === data.child('createdAt').val()))",
+          ".validate": "newData.hasChildren(['senderUid', 'recipientUid', 'code', 'status', 'createdAt'])",
+          "senderUid": {
+            ".validate": "newData.isString() && newData.val() === $senderUid"
+          },
+          "recipientUid": {
+            ".validate": "newData.isString() && newData.val() === $recipientUid"
+          },
+          "code": {
+            ".validate": "newData.isString() && newData.val().matches(/^DS-[A-Z0-9]{12}$/)"
+          },
+          "status": {
+            ".validate": "newData.val() === 'pending' || newData.val() === 'accepted'"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "fleetInvites": {
+      "$recipientUid": {
+        ".read": "auth != null && auth.uid === $recipientUid",
+        "$senderUid": {
+          ".read": "auth != null && (auth.uid === $recipientUid || auth.uid === $senderUid)",
+          ".write": "auth != null && $senderUid !== $recipientUid && (root.child('friendRequests').child($recipientUid).child($senderUid).child('status').val() === 'accepted' || root.child('friendRequests').child($senderUid).child($recipientUid).child('status').val() === 'accepted') && ((!data.exists() && newData.exists() && auth.uid === $senderUid && newData.child('status').val() === 'pending') || (data.exists() && newData.exists() && auth.uid === $senderUid && data.child('status').val() !== 'pending' && newData.child('status').val() === 'pending') || (data.exists() && newData.exists() && auth.uid === $recipientUid && data.child('status').val() === 'pending' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined') && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('senderUid').val() === data.child('senderUid').val() && newData.child('recipientUid').val() === data.child('recipientUid').val() && newData.child('gameId').val() === data.child('gameId').val()))",
+          ".validate": "newData.hasChildren(['senderUid', 'recipientUid', 'gameId', 'status', 'createdAt'])",
+          "senderUid": {
+            ".validate": "newData.isString() && newData.val() === $senderUid"
+          },
+          "recipientUid": {
+            ".validate": "newData.isString() && newData.val() === $recipientUid"
+          },
+          "gameId": {
+            ".validate": "newData.val() === 'hundir-la-flota'"
+          },
+          "status": {
+            ".validate": "newData.val() === 'pending' || newData.val() === 'accepted' || newData.val() === 'declined'"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now + 60000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "fleetReady": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('friendRequests').child($uid).child(auth.uid).child('status').val() === 'accepted' || root.child('friendRequests').child(auth.uid).child($uid).child('status').val() === 'accepted')",
+        ".write": "auth != null && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['ready', 'updatedAt'])",
+        "ready": {
+          ".validate": "newData.isBoolean()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now + 60000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "fleetMatches": {
+      "$matchId": {
+        ".read": "auth != null && (data.child('playerA').val() === auth.uid || data.child('playerB').val() === auth.uid)",
+        ".write": "auth != null && !data.exists() && newData.exists() && newData.child('playerA').val() === auth.uid && newData.child('createdBy').val() === auth.uid && newData.child('playerB').isString() && newData.child('playerB').val() !== auth.uid && (root.child('friendRequests').child(auth.uid).child(newData.child('playerB').val()).child('status').val() === 'accepted' || root.child('friendRequests').child(newData.child('playerB').val()).child(auth.uid).child('status').val() === 'accepted') && $matchId.matches(/^fm-[A-Za-z0-9_-]{20,60}$/)",
+        ".validate": "newData.hasChildren(['playerA','playerB','createdBy','status','mode','createdAt','updatedAt'])",
+        "playerA": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "playerB": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val() !== auth.uid"
+        },
+        "createdBy": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "status": {
+          ".validate": "newData.val() === 'setup'"
+        },
+        "mode": {
+          ".validate": "newData.val() === 'classic' || newData.val() === 'special'"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now + 60000 && newData.val() >= now - 300000"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() === newData.parent().child('createdAt').val()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
