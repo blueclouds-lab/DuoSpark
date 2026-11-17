@@ -139,13 +139,16 @@ function resolveCpuShot(i){enemyShots.add(i);let s=shipAt(ownShips,i);let result
 function end(win){phase="end";busy=false;$("turnBadge").textContent="Partida terminada";$("status").textContent=win?"🏆 ¡Victoria! Has hundido toda la flota rival.":"🌊 Derrota. El rival ha hundido tu flota. ¡Pide la revancha!";$("sonar").disabled=true;addLog(win?"FIN · Victoria":"FIN · Derrota");render();showCelebration(win)}
 function setMode(m){mode=m;$("classic").className=m==="classic"?"selected":"secondary";$("special").className=m==="special"?"selected":"secondary";render()}
 function setDir(d){dir=d;$("horizontal").className=d==="h"?"selected":"secondary";$("vertical").className=d==="v"?"selected":"secondary"}
-function reset(){readyOnlineLocal=false;try{localStorage.removeItem(READY_DRAFT_KEY)}catch(e){}document.getElementById("arcadeWin")?.remove();sinkingFinished={own:new Set(),enemy:new Set()};cinematicSink=null;phase="setup";busy=false;ownShips=[];enemyShips=[];ownShots=new Set();enemyShots=new Set();sonarMarks=new Set();sonarUsed=false;sonarPending=false;$("setup").classList.remove("hidden");$("gameInfo").hidden=true;$("enemyBox").classList.add("hidden");$("history").classList.add("hidden");render()}
+function reset(){readyOnlineLocal=false;try{localStorage.removeItem(READY_DRAFT_KEY)}catch(e){};window.duosparkReadyChanged?.(false);document.getElementById("arcadeWin")?.remove();sinkingFinished={own:new Set(),enemy:new Set()};cinematicSink=null;phase="setup";busy=false;ownShips=[];enemyShips=[];ownShots=new Set();enemyShots=new Set();sonarMarks=new Set();sonarUsed=false;sonarPending=false;$("setup").classList.remove("hidden");$("gameInfo").hidden=true;$("enemyBox").classList.add("hidden");$("history").classList.add("hidden");render()}
 
 // Preparación local persistente: no se envían posiciones ni disparos a Firebase.
 // Solo se restaura una flota en fase de colocación; la partida contra CPU sigue siendo una prueba.
 const FLEET_DRAFT_KEY="duospark-fleet-local-draft-v1";
 const READY_DRAFT_KEY="duospark-fleet-ready-local-v1";
 let readyOnlineLocal=false;
+let readySyncAvailable=false;
+let partnerReadyRemote=null;
+let readySyncMessage="Conectando con Firebase…";
 try{readyOnlineLocal=localStorage.getItem(READY_DRAFT_KEY)==="yes"}catch(e){}
 function updateWaitingRoom(){
  if(phase!=="setup")return;
@@ -154,12 +157,12 @@ function updateWaitingRoom(){
  $("readyOnline").classList.toggle("hidden",readyOnlineLocal);
  $("unreadyOnline").classList.toggle("hidden",!readyOnlineLocal);
  $("myReadyStatus").textContent=readyOnlineLocal?"💙 Tú: listo":"🚢 Tú: preparando barcos";
- $("partnerReadyStatus").textContent="🌊 Tu persona: pendiente de conexión";
- $("waitingMessage").textContent=readyOnlineLocal?"🌙 Tu flota está preparada. Esperando a que habilitemos la sincronización privada con la otra persona.":"Coloca los cinco barcos para activar «Estoy listo».";
+ $("partnerReadyStatus").textContent=partnerReadyRemote===true?"💙 Tu persona: lista":partnerReadyRemote===false?"🌊 Tu persona: preparando barcos":"🌊 Tu persona: estado desconocido";
+ $("waitingMessage").textContent=(readyOnlineLocal?"🌙 Tu flota está preparada. ":"Coloca los cinco barcos para activar «Estoy listo». ")+readySyncMessage+(readyOnlineLocal&&partnerReadyRemote===true?" Ambos estáis listos. La partida online todavía no comienza.":"");
  for(const id of ["auto","undo","reset","horizontal","vertical","classic","special","start"])$(id).disabled=readyOnlineLocal;
 }
-$("readyOnline").onclick=()=>{if(phase!=="setup"||ownShips.length!==5)return;readyOnlineLocal=true;try{localStorage.setItem(READY_DRAFT_KEY,"yes")}catch(e){}updateWaitingRoom()};
-$("unreadyOnline").onclick=()=>{readyOnlineLocal=false;try{localStorage.removeItem(READY_DRAFT_KEY)}catch(e){}updateWaitingRoom()};
+$("readyOnline").onclick=()=>{if(phase!=="setup"||ownShips.length!==5)return;readyOnlineLocal=true;try{localStorage.setItem(READY_DRAFT_KEY,"yes")}catch(e){}window.duosparkReadyChanged?.(true);updateWaitingRoom()};
+$("unreadyOnline").onclick=()=>{readyOnlineLocal=false;try{localStorage.removeItem(READY_DRAFT_KEY)}catch(e){}window.duosparkReadyChanged?.(false);updateWaitingRoom()};
 
 function saveFleetDraft(){
  try{if(phase!=="setup")return;localStorage.setItem(FLEET_DRAFT_KEY,JSON.stringify({version:1,ships:ownShips.map(s=>({name:s.name,cells:[...s.cells]})),mode,dir}))}
@@ -183,4 +186,39 @@ const previousRender=render;
 render=function(){previousRender();saveFleetDraft();updateWaitingRoom()};
 restoreFleetDraft();
 $("classic").onclick=()=>setMode("classic");$("special").onclick=()=>setMode("special");$("horizontal").onclick=()=>setDir("h");$("vertical").onclick=()=>setDir("v");$("auto").onclick=()=>{ownShips=randomFleet();render()};$("undo").onclick=()=>{ownShips.pop();render()};$("reset").onclick=()=>{ownShips=[];render()};$("start").onclick=start;$("newGame").onclick=reset;$("sonar").onclick=()=>{if(mode!=="special"||sonarUsed||busy||phase!=="battle")return;sonarPending=!sonarPending;$("status").textContent=sonarPending?"Selecciona una casilla para centrar el sonar 3 × 3.":"Sonar cancelado.";render()};render();
-</script></body></html>
+</script>
+<script type="module">
+import{initializeApp,getApps}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import{getAuth,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import{getDatabase,ref,get,set,onValue}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+const config={apiKey:"AIzaSyCmJJZxxcDpofwVUt29FrfCy4kM0g1Y3GM",authDomain:"duospark-1e725.firebaseapp.com",databaseURL:"https://duospark-1e725-default-rtdb.europe-west1.firebasedatabase.app",projectId:"duospark-1e725",appId:"1:316857821004:web:af1b3711865a5f816d91e9"};
+const db=getDatabase(getApps()[0]||initializeApp(config)),auth=getAuth();
+let uid=null,partner=null,unsubscribe=null,serial=0;
+function status(s){readySyncMessage=s;updateWaitingRoom()}
+async function publishReady(value){
+ if(!uid||!partner){status("Sin conexión privada: el estado solo está guardado en este Safari.");return}
+ try{await set(ref(db,"fleetReady/"+uid),{ready:!!value,updatedAt:Date.now()});status(value?"Estado «Estoy listo» sincronizado de forma privada.":"Estado «Preparando barcos» sincronizado de forma privada.")}
+ catch(e){status("No se pudo sincronizar ("+(e.code||"error")+"). El estado sigue guardado en este Safari.")}
+}
+window.duosparkReadyChanged=publishReady;
+onAuthStateChanged(auth,async u=>{
+ const ticket=++serial;unsubscribe?.();unsubscribe=null;uid=u?.uid||null;partner=null;partnerReadyRemote=null;
+ if(!uid){status("Inicia sesión desde Cuentas para sincronizar con tu persona.");return}
+ status("Comprobando vuestra amistad privada…");
+ try{
+  const incoming=await get(ref(db,"friendRequests/"+uid));if(ticket!==serial)return;
+  incoming.forEach(s=>{if(s.val()?.status==="accepted")partner=s.key});
+  if(!partner){
+   const saved=localStorage.getItem("duospark-friend-target-"+uid);
+   if(saved){const outgoing=await get(ref(db,"friendRequests/"+saved+"/"+uid));if(ticket!==serial)return;if(outgoing.val()?.status==="accepted")partner=saved}
+  }
+  if(!partner){status("No encontramos amistad aceptada. Comprueba el vínculo desde Cuentas.");return}
+  unsubscribe=onValue(ref(db,"fleetReady/"+partner),s=>{
+   partnerReadyRemote=s.exists()?s.val()?.ready===true:false;
+   updateWaitingRoom()
+  },e=>{partnerReadyRemote=null;status("No se puede consultar el estado rival ("+(e.code||"error")+").")});
+  await publishReady(readyOnlineLocal&&ownShips.length===5);
+ }catch(e){if(ticket===serial)status("No se pudo comprobar la amistad ("+(e.code||"error")+").")}
+});
+</script>
+</body></html>
