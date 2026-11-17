@@ -1,0 +1,33 @@
+{
+  "fleetMatches": {
+    "$matchId": {
+      ".read": "auth != null && (data.child('playerA').val() === auth.uid || data.child('playerB').val() === auth.uid)",
+      ".write": "auth != null && !data.exists() && newData.exists() && newData.child('playerA').val() === auth.uid && newData.child('createdBy').val() === auth.uid && newData.child('playerB').isString() && newData.child('playerB').val() !== auth.uid && (root.child('friendRequests').child(auth.uid).child(newData.child('playerB').val()).child('status').val() === 'accepted' || root.child('friendRequests').child(newData.child('playerB').val()).child(auth.uid).child('status').val() === 'accepted') && $matchId.matches(/^fm-[A-Za-z0-9_-]{20,60}$/)",
+      ".validate": "newData.hasChildren(['playerA','playerB','createdBy','status','mode','createdAt','updatedAt'])",
+      "playerA": {
+        ".validate": "newData.isString() && newData.val() === auth.uid"
+      },
+      "playerB": {
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val() !== auth.uid"
+      },
+      "createdBy": {
+        ".validate": "newData.isString() && newData.val() === auth.uid"
+      },
+      "status": {
+        ".validate": "newData.val() === 'setup'"
+      },
+      "mode": {
+        ".validate": "newData.val() === 'classic' || newData.val() === 'special'"
+      },
+      "createdAt": {
+        ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now + 60000 && newData.val() >= now - 300000"
+      },
+      "updatedAt": {
+        ".validate": "newData.isNumber() && newData.val() === newData.parent().child('createdAt').val()"
+      },
+      "$other": {
+        ".validate": false
+      }
+    }
+  }
+}
